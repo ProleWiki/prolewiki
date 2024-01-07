@@ -319,12 +319,17 @@ class ConfirmAccountsPage extends SpecialPage {
 		$form = Xml::openElement( 'form', [ 'method' => 'post', 'name' => 'accountconfirm',
 			'action' => $titleObj->getLocalUrl() ] );
 
+		$readonly = '';
+		if (!in_array("sysop", $this->getUser()->getGroups())) {
+			$readonly = 'readonly';
+		}
 		$form .= "<fieldset>";
 		$form .= '<legend>' . $this->msg( 'confirmaccount-leg-user' )->escaped() . '</legend>';
 		$form .= '<table style="padding:4px;">';
 		$form .= "<tr><td>" . Xml::label( $this->msg( 'username' )->text(), 'wpNewName' ) . "</td>";
 		$form .= "<td>" . Xml::input( 'wpNewName', 30, $this->reqUsername, [
-			'id' => 'wpNewName'
+			'id' => 'wpNewName',
+			$readonly => ''
 		] ) . "</td></tr>\n";
 		$econf = '';
 		if ( $accountReq->getEmailAuthTimestamp() ) {
@@ -402,7 +407,7 @@ class ConfirmAccountsPage extends SpecialPage {
 			if ( $this->hasItem( 'Biography' ) ) {
 				$form .= "<p>" . $this->msg( 'confirmaccount-bio' )->escaped() . "\n";
 				$form .= "<textarea tabindex='1' name='wpNewBio' class='wpNewBio' rows='12'
-					cols='80'>" .
+					cols='80' " . $readonly . ">" .
 					htmlspecialchars( $this->reqBio ) .
 					"</textarea></p>\n";
 			}

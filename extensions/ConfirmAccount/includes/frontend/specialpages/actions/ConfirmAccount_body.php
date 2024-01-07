@@ -331,7 +331,14 @@ class ConfirmAccountsPage extends SpecialPage {
 			$econf = ' <strong>' . $this->msg( 'confirmaccount-econf' )->escaped() . '</strong>';
 		}
 		$form .= "<tr><td>" . $this->msg( 'confirmaccount-email' )->escaped() . "</td>";
-		$form .= "<td>" . htmlspecialchars( $accountReq->getEmail() ) . $econf . "</td></tr>\n";
+		$email = '';
+		if (in_array("sysop", $this->getUser()->getGroups())) {
+			$email = htmlspecialchars( $accountReq->getEmail());
+		} else {
+			list($u, $e) = explode('@', $accountReq->getEmail());
+			$email = '<i>(hidden)</i>@' . $e;
+		}
+		$form .= "<td>" . $email . $econf . "</td></tr>\n";
 		if ( count( $wgAccountRequestTypes ) > 1 ) {
 			$options = [];
 			$form .= "<tr><td><strong>" . $this->msg(
@@ -440,73 +447,76 @@ class ConfirmAccountsPage extends SpecialPage {
 				[],
 				[ 'ip' => $accountReq->getIP(), '&wpCreateAccount' => 1 ]
 			);
+			if (in_array("sysop", $this->getUser()->getGroups())) {
+				$form .= '<fieldset>';
+				$form .= '<legend>' . $this->msg( 'confirmaccount-leg-ip' )->escaped() . '</legend>';
+				$wordSeparator = $this->msg( 'word-separator' )->plain();
+				$form .= "<p>";
+				// @todo FIXME: Bad i18n. Should probably be something like
+				// "confirmaccount-ip $1 ($2)" to get rid of this mess.
+				$form .= $this->msg( 'confirmaccount-ip' )->escaped();
+				$form .= $wordSeparator;
+				$form .= htmlspecialchars( $accountReq->getIP() );
+				$form .= $wordSeparator;
+				$form .= $this->msg( 'parentheses' )->rawParams( $link )->escaped();
+				$form .= "</p>\n";
+				if ( $accountReq->getXFF() ) {
+					$form .= "<p>" . $this->msg( 'confirmaccount-xff' )->escaped() .
+					$wordSeparator . htmlspecialchars( $accountReq->getXFF() ) . "</p>\n";
+				}
+				if ( $accountReq->getAgent() ) {
+					$form .= "<p>" . $this->msg( 'confirmaccount-agent' )->escaped() .
+					$wordSeparator . htmlspecialchars( $accountReq->getAgent() ) . "</p>\n";
+				}
+				$form .= '</fieldset>';
+			}
+		}
+		if (in_array("sysop", $this->getUser()->getGroups())) {
 			$form .= '<fieldset>';
-			$form .= '<legend>' . $this->msg( 'confirmaccount-leg-ip' )->escaped() . '</legend>';
-			$wordSeparator = $this->msg( 'word-separator' )->plain();
-			$form .= "<p>";
-			// @todo FIXME: Bad i18n. Should probably be something like
-			// "confirmaccount-ip $1 ($2)" to get rid of this mess.
-			$form .= $this->msg( 'confirmaccount-ip' )->escaped();
-			$form .= $wordSeparator;
-			$form .= htmlspecialchars( $accountReq->getIP() );
-			$form .= $wordSeparator;
-			$form .= $this->msg( 'parentheses' )->rawParams( $link )->escaped();
-			$form .= "</p>\n";
-			if ( $accountReq->getXFF() ) {
-				$form .= "<p>" . $this->msg( 'confirmaccount-xff' )->escaped() .
-				$wordSeparator . htmlspecialchars( $accountReq->getXFF() ) . "</p>\n";
-			}
-			if ( $accountReq->getAgent() ) {
-				$form .= "<p>" . $this->msg( 'confirmaccount-agent' )->escaped() .
-				$wordSeparator . htmlspecialchars( $accountReq->getAgent() ) . "</p>\n";
-			}
+			$form .= '<legend>' . $this->msg( 'confirmaccount-legend' )->escaped() . '</legend>';
+			$form .= "<strong>" . $this->msg( 'confirmaccount-confirm' )->parse() . "</strong>\n";
+			$form .= "<table style='padding:5px;'><tr>";
+			$form .= "<td>" . Xml::radio( 'wpSubmitType', 'accept', $this->submitType == 'accept',
+				[
+					'id' => 'submitCreate',
+					'onclick' => 'document.getElementById("wpComment").style.display="block"'
+				]
+			);
+			$form .= ' ' . Xml::label(
+				$this->msg( 'confirmaccount-create' )->text(), 'submitCreate'
+			) . "</td>\n";
+			$form .= "<td>" . Xml::radio( 'wpSubmitType', 'reject', $this->submitType == 'reject',
+				[
+					'id' => 'submitDeny', 'onclick' => 'document.getElementById("wpComment").style.display="block"'
+				]
+			);
+			$form .= ' ' . Xml::label(
+				$this->msg( 'confirmaccount-deny' )->text(), 'submitDeny'
+			) . "</td>\n";
+			$form .= "<td>" . Xml::radio( 'wpSubmitType', 'hold', $this->submitType == 'hold',
+				[
+					'id' => 'submitHold', 'onclick' => 'document.getElementById("wpComment").style.display="block"'
+				]
+			);
+			$form .= ' ' . Xml::label(
+				$this->msg( 'confirmaccount-hold' )->text(), 'submitHold'
+			) . "</td>\n";
+			$form .= "<td>" . Xml::radio( 'wpSubmitType', 'spam', $this->submitType == 'spam',
+				[
+					'id' => 'submitSpam', 'onclick' => 'document.getElementById("wpComment").style.display="none"'
+				]
+			);
+			$form .= ' ' . Xml::label(
+				$this->msg( 'confirmaccount-spam' )->text(), 'submitSpam'
+			) . "</td>\n";
+			$form .= "</tr></table>";
+			$form .= "<div id='wpComment'><p>" . $this->msg( 'confirmaccount-reason' )->escaped() . "</p>\n";
+			$form .= "<p>
+			<textarea name='wpReason' id='wpReason' rows='3' cols='80' style='width:80%; display=block;'>" .
+				htmlspecialchars( $this->reason ) . "</textarea></p></div>\n";
+			$form .= "<p>" . Xml::submitButton( $this->msg( 'confirmaccount-submit' )->text() ) . "</p>\n";
 			$form .= '</fieldset>';
 		}
-
-		$form .= '<fieldset>';
-		$form .= '<legend>' . $this->msg( 'confirmaccount-legend' )->escaped() . '</legend>';
-		$form .= "<strong>" . $this->msg( 'confirmaccount-confirm' )->parse() . "</strong>\n";
-		$form .= "<table style='padding:5px;'><tr>";
-		$form .= "<td>" . Xml::radio( 'wpSubmitType', 'accept', $this->submitType == 'accept',
-			[
-				'id' => 'submitCreate',
-				'onclick' => 'document.getElementById("wpComment").style.display="block"'
-			]
-		);
-		$form .= ' ' . Xml::label(
-			$this->msg( 'confirmaccount-create' )->text(), 'submitCreate'
-		) . "</td>\n";
-		$form .= "<td>" . Xml::radio( 'wpSubmitType', 'reject', $this->submitType == 'reject',
-			[
-				'id' => 'submitDeny', 'onclick' => 'document.getElementById("wpComment").style.display="block"'
-			]
-		);
-		$form .= ' ' . Xml::label(
-			$this->msg( 'confirmaccount-deny' )->text(), 'submitDeny'
-		) . "</td>\n";
-		$form .= "<td>" . Xml::radio( 'wpSubmitType', 'hold', $this->submitType == 'hold',
-			[
-				'id' => 'submitHold', 'onclick' => 'document.getElementById("wpComment").style.display="block"'
-			]
-		);
-		$form .= ' ' . Xml::label(
-			$this->msg( 'confirmaccount-hold' )->text(), 'submitHold'
-		) . "</td>\n";
-		$form .= "<td>" . Xml::radio( 'wpSubmitType', 'spam', $this->submitType == 'spam',
-			[
-				'id' => 'submitSpam', 'onclick' => 'document.getElementById("wpComment").style.display="none"'
-			]
-		);
-		$form .= ' ' . Xml::label(
-			$this->msg( 'confirmaccount-spam' )->text(), 'submitSpam'
-		) . "</td>\n";
-		$form .= "</tr></table>";
-		$form .= "<div id='wpComment'><p>" . $this->msg( 'confirmaccount-reason' )->escaped() . "</p>\n";
-		$form .= "<p>
-		<textarea name='wpReason' id='wpReason' rows='3' cols='80' style='width:80%; display=block;'>" .
-			htmlspecialchars( $this->reason ) . "</textarea></p></div>\n";
-		$form .= "<p>" . Xml::submitButton( $this->msg( 'confirmaccount-submit' )->text() ) . "</p>\n";
-		$form .= '</fieldset>';
 
 		$form .= Html::hidden( 'title', $titleObj->getPrefixedDBKey() ) . "\n";
 		$form .= Html::hidden( 'action', 'reject' );
@@ -795,13 +805,20 @@ class ConfirmAccountsPage extends SpecialPage {
 			)->escaped() . '</strong></td><td width=\'100%\'>' .
 				htmlspecialchars( $row->acr_real_name ) . $hasCV . '</td></tr>';
 		}
+		$email = '';
+		if (in_array("sysop", $this->getUser()->getGroups())) {
+			$email = htmlspecialchars( $row->acr_email);
+		} else {
+			list($u, $e) = explode('@', $row->acr_email);
+			$email = '<i>(hidden)</i>@' . $e;
+		}
 		$econf = $row->acr_email_authenticated
 			? ' <strong>' . $this->msg( 'confirmaccount-econf' )->escaped() . '</strong>'
 			: '';
 		$r .= '<tr><td><strong>' . $this->msg(
 			'confirmaccount-email-q'
 		)->escaped() . '</strong></td><td width=\'100%\'>' .
-			htmlspecialchars( $row->acr_email ) . $econf . '</td></tr>';
+			$email . $econf . '</td></tr>';
 		# Truncate this, blah blah...
 		$bio = htmlspecialchars( $row->acr_bio );
 		$preview = $this->getLanguage()->truncateForVisual( $bio, 400, '' );

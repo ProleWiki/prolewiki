@@ -341,7 +341,7 @@ class ConfirmAccountsPage extends SpecialPage {
 			$email = htmlspecialchars( $accountReq->getEmail());
 		} else {
 			list($u, $e) = explode('@', $accountReq->getEmail());
-			$email = '<i>(hidden)</i>@' . $e;
+			$email = $this->msg( 'confirmaccount-hidden' ) . '@' . $e;
 		}
 		$form .= "<td>" . $email . $econf . "</td></tr>\n";
 		if ( count( $wgAccountRequestTypes ) > 1 ) {
@@ -815,7 +815,7 @@ class ConfirmAccountsPage extends SpecialPage {
 			$email = htmlspecialchars( $row->acr_email);
 		} else {
 			list($u, $e) = explode('@', $row->acr_email);
-			$email = '<i>(hidden)</i>@' . $e;
+			$email = $this->msg( 'confirmaccount-hidden' ) . '@' . $e;
 		}
 		$econf = $row->acr_email_authenticated
 			? ' <strong>' . $this->msg( 'confirmaccount-econf' )->escaped() . '</strong>'
